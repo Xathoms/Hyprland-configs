@@ -1,0 +1,294 @@
+/* ╔══════════════════════════════════════════════════════════════════════════════╗
+ * ║                         SWAYNC STYLESHEET                                    ║
+ * ║                      Atom One Dark Pro Theme                                 ║
+ * ╚══════════════════════════════════════════════════════════════════════════════╝ */
+
+/* ┌──────────────────────────────────────────────────────────────────────────────┐
+ * │                           COLOR VARIABLES                                    │
+ * └──────────────────────────────────────────────────────────────────────────────┘ */
+@define-color background #282c34;
+@define-color background-alt #21252b;
+@define-color foreground #abb2bf;
+@define-color red #e06c75;
+@define-color green #98c379;
+@define-color yellow #e5c07b;
+@define-color blue #61afef;
+@define-color magenta #c678dd;
+@define-color cyan #56b6c2;
+@define-color border rgba(97, 175, 239, 0.3);
+
+/* ┌──────────────────────────────────────────────────────────────────────────────┐
+ * │                           CONTROL CENTER                                     │
+ * └──────────────────────────────────────────────────────────────────────────────┘ */
+.control-center {
+    background: alpha(@background, 0.92);
+    border: 1px solid @border;
+    border-radius: 16px;
+    padding: 12px;
+    margin: 8px;
+}
+
+.control-center .notification-row {
+    padding: 0;
+    margin: 4px 0;
+}
+
+.control-center .notification-row:focus,
+.control-center .notification-row:hover {
+    background: transparent;
+}
+
+/* ┌──────────────────────────────────────────────────────────────────────────────┐
+ * │                           NOTIFICATIONS                                      │
+ * └──────────────────────────────────────────────────────────────────────────────┘ */
+.notification {
+    background: @background-alt;
+    border: 1px solid @border;
+    border-radius: 12px;
+    padding: 0;
+    margin: 6px 0;
+}
+
+.notification-content {
+    padding: 12px;
+}
+
+.notification-default-action {
+    border-radius: 12px;
+}
+
+.notification-default-action:hover {
+    background: alpha(@blue, 0.1);
+}
+
+.notification .summary {
+    color: @foreground;
+    font-weight: bold;
+    font-size: 13px;
+}
+
+.notification .body {
+    color: alpha(@foreground, 0.85);
+    font-size: 12px;
+}
+
+.notification .time {
+    color: alpha(@foreground, 0.6);
+    font-size: 11px;
+}
+
+.notification.critical {
+    border-left: 3px solid @red;
+}
+
+.notification.low {
+    border-left: 3px solid @cyan;
+}
+
+.close-button {
+    background: alpha(@red, 0.8);
+    color: @background;
+    border-radius: 8px;
+    padding: 2px;
+    margin: 8px;
+    min-width: 24px;
+    min-height: 24px;
+}
+
+.close-button:hover {
+    background: @red;
+}
+
+/* ┌──────────────────────────────────────────────────────────────────────────────┐
+ * │                           FLOATING NOTIFICATIONS                             │
+ * └──────────────────────────────────────────────────────────────────────────────┘ */
+.floating-notifications {
+    background: transparent;
+}
+
+.floating-notifications .notification {
+    background: alpha(@background, 0.92);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+
+/* ┌──────────────────────────────────────────────────────────────────────────────┐
+ * │                           WIDGETS                                            │
+ * └──────────────────────────────────────────────────────────────────────────────┘ */
+.widget-title {
+    color: @foreground;
+    font-size: 14px;
+    font-weight: bold;
+    padding: 8px 12px;
+}
+
+.widget-title > button {
+    background: alpha(@red, 0.2);
+    color: @red;
+    border-radius: 8px;
+    padding: 4px 12px;
+    font-size: 12px;
+    border: none;
+}
+
+.widget-title > button:hover {
+    background: @red;
+    color: @background;
+}
+
+/* DND Widget */
+.widget-dnd {
+    background: @background-alt;
+    border-radius: 12px;
+    padding: 8px 12px;
+    margin: 8px 0;
+}
+
+.widget-dnd > switch {
+    background: alpha(@foreground, 0.2);
+    border-radius: 20px;
+}
+
+.widget-dnd > switch:checked {
+    background: @blue;
+}
+
+.widget-dnd > switch slider {
+    background: @foreground;
+    border-radius: 50%;
+    min-width: 20px;
+    min-height: 20px;
+}
+
+/* MPRIS Widget */
+.widget-mpris {
+    background: @background-alt;
+    border-radius: 12px;
+    padding: 12px;
+    margin: 8px 0;
+}
+
+.widget-mpris-player {
+    padding: 8px;
+}
+
+.widget-mpris-title {
+    color: @foreground;
+    font-weight: bold;
+    font-size: 13px;
+}
+
+.widget-mpris-subtitle {
+    color: alpha(@foreground, 0.7);
+    font-size: 11px;
+}
+
+.widget-mpris > box > button {
+    background: transparent;
+    color: @foreground;
+    border-radius: 50%;
+    min-width: 36px;
+    min-height: 36px;
+}
+
+.widget-mpris > box > button:hover {
+    background: alpha(@blue, 0.2);
+    color: @blue;
+}
+
+/* Volume Widget */
+.widget-volume {
+    background: @background-alt;
+    border-radius: 12px;
+    padding: 12px;
+    margin: 8px 0;
+}
+
+.widget-volume scale trough {
+    background: alpha(@foreground, 0.2);
+    border-radius: 6px;
+    min-height: 8px;
+}
+
+.widget-volume scale highlight {
+    background: linear-gradient(90deg, @green, @cyan);
+    border-radius: 6px;
+}
+
+.widget-volume scale slider {
+    background: @foreground;
+    border-radius: 50%;
+    min-width: 16px;
+    min-height: 16px;
+}
+
+/* Backlight Widget */
+.widget-backlight {
+    background: @background-alt;
+    border-radius: 12px;
+    padding: 12px;
+    margin: 8px 0;
+}
+
+.widget-backlight scale trough {
+    background: alpha(@foreground, 0.2);
+    border-radius: 6px;
+    min-height: 8px;
+}
+
+.widget-backlight scale highlight {
+    background: linear-gradient(90deg, @yellow, @red);
+    border-radius: 6px;
+}
+
+/* Buttons Grid Widget */
+.widget-buttons-grid {
+    background: @background-alt;
+    border-radius: 12px;
+    padding: 8px;
+    margin: 8px 0;
+}
+
+.widget-buttons-grid > flowbox > flowboxchild > button {
+    background: alpha(@foreground, 0.1);
+    color: @foreground;
+    border-radius: 10px;
+    padding: 12px;
+    margin: 4px;
+    min-width: 48px;
+    min-height: 48px;
+    font-size: 18px;
+}
+
+.widget-buttons-grid > flowbox > flowboxchild > button:hover {
+    background: alpha(@blue, 0.2);
+    color: @blue;
+}
+
+/* ┌──────────────────────────────────────────────────────────────────────────────┐
+ * │                           BLANK WINDOW                                       │
+ * └──────────────────────────────────────────────────────────────────────────────┘ */
+.blank-window {
+    background: transparent;
+}
+
+/* ┌──────────────────────────────────────────────────────────────────────────────┐
+ * │                           SCROLLBAR                                          │
+ * └──────────────────────────────────────────────────────────────────────────────┘ */
+scrolledwindow {
+    border: none;
+}
+
+scrollbar {
+    background: transparent;
+    border: none;
+}
+
+scrollbar slider {
+    background: alpha(@foreground, 0.3);
+    border-radius: 10px;
+    min-width: 6px;
+}
+
+scrollbar slider:hover {
+    background: alpha(@foreground, 0.5);
+}

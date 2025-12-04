@@ -1,0 +1,226 @@
+/* ╔══════════════════════════════════════════════════════════════════════════════╗
+ * ║                            WAYBAR STYLE                                       ║
+ * ║                          One Dark Theme                                       ║
+ * ╚══════════════════════════════════════════════════════════════════════════════╝ */
+
+@import "colors.css";
+
+/* ┌──────────────────────────────────────────────────────────────────────────────┐
+ * │                              GLOBAL                                           │
+ * └──────────────────────────────────────────────────────────────────────────────┘ */
+* {
+    font-family: "CaskaydiaCove Nerd Font", "Font Awesome 6 Free", sans-serif;
+    font-weight: bold;
+    padding: 0;
+    margin: 0;
+}
+
+/* ┌──────────────────────────────────────────────────────────────────────────────┐
+ * │                              WINDOW                                           │
+ * └──────────────────────────────────────────────────────────────────────────────┘ */
+window#waybar {
+    background-color: transparent;
+    color: @fg;
+}
+
+window#waybar > box {
+    background-color: transparent;
+    margin: 8px 12px 0 12px;
+}
+
+/* ┌──────────────────────────────────────────────────────────────────────────────┐
+ * │                         MODULE GROUP STYLE                                    │
+ * └──────────────────────────────────────────────────────────────────────────────┘ */
+#workspaces,
+#window,
+#clock,
+#tray,
+#pulseaudio,
+#network,
+#bluetooth,
+#battery,
+#cpu,
+#memory,
+#disk,
+#temperature,
+#backlight,
+#custom-power,
+#custom-notification {
+    background-color: @bg0;
+    padding: 0 15px 0 15px;
+    margin: 0 0 0 12px;
+    border-radius: 45px;
+    border: 1px solid @bg1;
+}
+
+/* ┌──────────────────────────────────────────────────────────────────────────────┐
+ * │                              WORKSPACES                                       │
+ * └──────────────────────────────────────────────────────────────────────────────┘ */
+#workspaces {
+    margin-left: 0;
+}
+
+#workspaces button {
+    color: @grey0;
+    padding: 0 8px;
+    background-color: transparent;
+    border: none;
+    transition: all 0.2s ease;
+}
+
+#workspaces button:hover {
+    color: @fg;
+}
+
+#workspaces button.active {
+    color: @yellow;
+}
+
+#workspaces button.urgent {
+    color: @red;
+}
+
+/* ┌──────────────────────────────────────────────────────────────────────────────┐
+ * │                              WINDOW TITLE                                     │
+ * └──────────────────────────────────────────────────────────────────────────────┘ */
+#window {
+    color: @fg;
+}
+
+window#waybar.empty #window {
+    background-color: transparent;
+    border: none;
+}
+
+/* ┌──────────────────────────────────────────────────────────────────────────────┐
+ * │                              CLOCK                                            │
+ * └──────────────────────────────────────────────────────────────────────────────┘ */
+#clock {
+    color: @yellow;
+}
+
+/* ┌──────────────────────────────────────────────────────────────────────────────┐
+ * │                              TRAY                                             │
+ * └──────────────────────────────────────────────────────────────────────────────┘ */
+#tray {
+    color: @fg;
+}
+
+#tray > .passive {
+    -gtk-icon-effect: dim;
+}
+
+#tray > .needs-attention {
+    -gtk-icon-effect: highlight;
+}
+
+#tray menu {
+    background-color: @bg0;
+    color: @fg;
+}
+
+/* ┌──────────────────────────────────────────────────────────────────────────────┐
+ * │                              AUDIO                                            │
+ * └──────────────────────────────────────────────────────────────────────────────┘ */
+#pulseaudio {
+    color: @purple;
+}
+
+#pulseaudio.muted {
+    color: @grey0;
+}
+
+/* ┌──────────────────────────────────────────────────────────────────────────────┐
+ * │                              NETWORK                                          │
+ * └──────────────────────────────────────────────────────────────────────────────┘ */
+#network {
+    color: @aqua;
+}
+
+#network.disconnected {
+    color: @grey0;
+}
+
+/* ┌──────────────────────────────────────────────────────────────────────────────┐
+ * │                              BLUETOOTH                                        │
+ * └──────────────────────────────────────────────────────────────────────────────┘ */
+#bluetooth {
+    color: @blue;
+}
+
+#bluetooth.disabled,
+#bluetooth.off {
+    color: @grey0;
+}
+
+/* ┌──────────────────────────────────────────────────────────────────────────────┐
+ * │                              BATTERY                                          │
+ * └──────────────────────────────────────────────────────────────────────────────┘ */
+#battery {
+    color: @green;
+}
+
+#battery.charging {
+    color: @green;
+}
+
+#battery.warning:not(.charging) {
+    color: @orange;
+}
+
+#battery.critical:not(.charging) {
+    color: @red;
+}
+
+/* ┌──────────────────────────────────────────────────────────────────────────────┐
+ * │                              SYSTEM                                           │
+ * └──────────────────────────────────────────────────────────────────────────────┘ */
+#cpu {
+    color: @orange;
+}
+
+#memory {
+    color: @yellow;
+}
+
+#disk {
+    color: @aqua;
+}
+
+#temperature {
+    color: @green;
+}
+
+#temperature.critical {
+    color: @red;
+}
+
+#backlight {
+    color: @yellow;
+}
+
+/* ┌──────────────────────────────────────────────────────────────────────────────┐
+ * │                              CUSTOM MODULES                                   │
+ * └──────────────────────────────────────────────────────────────────────────────┘ */
+#custom-notification {
+    color: @blue;
+}
+
+#custom-power {
+    color: @red;
+    margin-right: 0;
+}
+
+/* ┌──────────────────────────────────────────────────────────────────────────────┐
+ * │                              TOOLTIP                                          │
+ * └──────────────────────────────────────────────────────────────────────────────┘ */
+tooltip {
+    background-color: @bg0;
+    border: 1px solid @bg1;
+    border-radius: 8px;
+}
+
+tooltip label {
+    color: @fg;
+    padding: 8px;
+}
