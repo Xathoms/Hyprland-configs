@@ -233,10 +233,35 @@ echo
 read -p "Vuoi provare a compilare Hyprland da sorgente? (richiede ~10-15 min) [y/N] " -n 1 -r
 echo
 if [[ $REPLY =~ ^[Yy]$ ]]; then
+    # Installa CMake 3.30+ (richiesto da Hyprland)
+    print_info "Verifica versione CMake..."
+    CMAKE_VERSION=$(cmake --version | grep -oP 'cmake version \K[0-9.]+' | head -1)
+    CMAKE_MAJOR=$(echo "$CMAKE_VERSION" | cut -d. -f1)
+    CMAKE_MINOR=$(echo "$CMAKE_VERSION" | cut -d. -f2)
+    
+    if [ "$CMAKE_MAJOR" -lt 3 ] || { [ "$CMAKE_MAJOR" -eq 3 ] && [ "$CMAKE_MINOR" -lt 30 ]; }; then
+        print_warning "CMake $CMAKE_VERSION troppo vecchio, serve 3.30+"
+        print_info "Installazione CMake 3.30+ da Kitware..."
+        
+        # Rimuovi CMake vecchio
+        sudo apt remove -y cmake
+        
+        # Aggiungi repo Kitware per CMake aggiornato
+        wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | gpg --dearmor - | sudo tee /usr/share/keyrings/kitware-archive-keyring.gpg >/dev/null
+        echo 'deb [signed-by=/usr/share/keyrings/kitware-archive-keyring.gpg] https://apt.kitware.com/ubuntu/ jammy main' | sudo tee /etc/apt/sources.list.d/kitware.list >/dev/null
+        sudo apt update
+        sudo apt install -y cmake
+        
+        NEW_CMAKE_VERSION=$(cmake --version | grep -oP 'cmake version \K[0-9.]+' | head -1)
+        print_success "CMake aggiornato: $CMAKE_VERSION → $NEW_CMAKE_VERSION"
+    else
+        print_success "CMake $CMAKE_VERSION è già aggiornato"
+    fi
+    
     # Installa dipendenze per compilazione
     print_info "Installazione dipendenze build..."
     sudo apt install -y \
-        cmake meson ninja-build pkg-config \
+        meson ninja-build pkg-config \
         libtomlplusplus-dev libmagic-dev libdrm-dev \
         libgles2-mesa-dev libgbm-dev libinput-dev libxcb-composite0-dev \
         libxcb-icccm4-dev libxcb-render-util0-dev libxcb-res0-dev \
@@ -473,18 +498,33 @@ print_header "Copia delle configurazioni"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CONFIG_DIR="$HOME/.config"
+BACKUP_DIR="$HOME/backup-old-dotfiles/$(date +%Y%m%d_%H%M%S)"
 
-# Funzione per copiare con backup
+# Funzione per copiare con backup centralizzato
 copy_config() {
     local src="$1"
     local dest="$2"
     
-    if [ -e "$dest" ]; then
-        local backup="${dest}.backup.$(date +%Y%m%d_%H%M%S)"
-        print_warning "Backup: $dest -> $backup"
-        mv "$dest" "$backup"
+    # Se esiste qualcosa in dest, fai backup e rimuovi
+    if [ -e "$dest" ] || [ -L "$dest" ]; then
+        # Crea cartella backup se non esiste
+        mkdir -p "$BACKUP_DIR"
+        
+        # Calcola il percorso relativo per mantenere la struttura
+        local relative_path="${dest#$HOME/}"
+        local backup_path="$BACKUP_DIR/$relative_path"
+        
+        print_warning "Backup: $dest -> $backup_path"
+        mkdir -p "$(dirname "$backup_path")"
+        
+        # Prova a spostare, se fallisce rimuovi
+        if ! mv "$dest" "$backup_path" 2>/dev/null; then
+            print_warning "Impossibile spostare, rimuovo: $dest"
+            rm -rf "$dest"
+        fi
     fi
     
+    # Ora copia in base al tipo di sorgente
     if [ -d "$src" ]; then
         mkdir -p "$dest"
         cp -r "$src"/* "$dest"/ 2>/dev/null || true
@@ -492,6 +532,36 @@ copy_config() {
         mkdir -p "$(dirname "$dest")"
         cp "$src" "$dest"
     fi
+}
+
+# Funzione per creare directory rimuovendo eventuali file omonimi
+safe_mkdir() {
+    for dir in "$@"; do
+        # Se esiste qualcosa (file, link, o directory non vuota), gestiscilo
+        if [ -e "$dir" ] || [ -L "$dir" ]; then
+            # Se è già una directory, non fare nulla
+            if [ -d "$dir" ] && [ ! -L "$dir" ]; then
+                continue
+            fi
+            
+            # Per tutto il resto (file, link, directory-link), fai backup e rimuovi
+            mkdir -p "$BACKUP_DIR"
+            local relative_path="${dir#$HOME/}"
+            local backup_path="$BACKUP_DIR/$relative_path"
+            
+            print_warning "Backup: $dir -> $backup_path"
+            mkdir -p "$(dirname "$backup_path")"
+            
+            # Prova a spostare
+            if ! mv "$dir" "$backup_path" 2>/dev/null; then
+                print_warning "Impossibile spostare, rimuovo forzatamente: $dir"
+                rm -rf "$dir"
+            fi
+        fi
+        
+        # Ora crea la directory (sarà sempre possibile)
+        mkdir -p "$dir"
+    done
 }
 
 # Hyprland
@@ -510,6 +580,22 @@ fi
 sed -i 's/exec, brave$/exec, brave-browser/' "$CONFIG_DIR/hypr/hyprland.conf"
 
 print_info "Layout tastiera: $KB_LAYOUT"
+
+# Auto-rileva e configura monitor
+print_info "Rilevamento automatico monitor..."
+if command -v hyprctl &> /dev/null && [ -n "$WAYLAND_DISPLAY" ]; then
+    # Se Hyprland è già in esecuzione, rileva i monitor
+    MONITOR_INFO=$(hyprctl monitors -j 2>/dev/null | jq -r '.[0] | "\(.name),\(.width)x\(.height)@\(.refreshRate),\(.x)x\(.y),1"' 2>/dev/null)
+    if [ -n "$MONITOR_INFO" ] && [ "$MONITOR_INFO" != "null" ]; then
+        sed -i "s|monitor=,preferred,auto,1|monitor=$MONITOR_INFO|" "$CONFIG_DIR/hypr/hyprland.conf"
+        print_success "Monitor configurato automaticamente: $MONITOR_INFO"
+    else
+        print_warning "Auto-rilevazione fallita, uso 'preferred' (configurazione automatica)"
+    fi
+else
+    print_info "Hyprland non in esecuzione, verrà usato 'preferred' (auto)"
+fi
+
 print_success "Hyprland"
 
 # Waybar
@@ -518,7 +604,6 @@ copy_config "$SCRIPT_DIR/waybar" "$CONFIG_DIR/waybar"
 # Modifica waybar config in base al tipo di dispositivo
 if [ "$IS_LAPTOP" = false ]; then
     sed -i 's/"battery", //' "$CONFIG_DIR/waybar/config.jsonc"
-    sed -i 's/"custom\/power"/"cpu", "memory", "custom\/power"/' "$CONFIG_DIR/waybar/config.jsonc"
     print_info "Waybar configurato per Desktop (CPU + Memory invece di Battery)"
 else
     print_info "Waybar configurato per Laptop (con Battery)"
@@ -526,52 +611,56 @@ fi
 print_success "Waybar"
 
 # Rofi (scarica da adi1090x/rofi)
-print_info "Scaricando temi Rofi da adi1090x/rofi..."
-ROFI_REPO="/tmp/adi1090x-rofi"
-
-if [ -d "$ROFI_REPO" ]; then
-    rm -rf "$ROFI_REPO"
-fi
-
-git clone --depth 1 https://github.com/adi1090x/rofi.git "$ROFI_REPO" 2>/dev/null
-
-if [ -d "$ROFI_REPO/files" ]; then
-    mkdir -p "$CONFIG_DIR/rofi"
-    
-    cp -r "$ROFI_REPO/files/colors" "$CONFIG_DIR/rofi/"
-    cp -r "$ROFI_REPO/files/launchers" "$CONFIG_DIR/rofi/"
-    cp -r "$ROFI_REPO/files/powermenu" "$CONFIG_DIR/rofi/"
-    cp "$ROFI_REPO/files/config.rasi" "$CONFIG_DIR/rofi/"
-    
-    # Aggiorna font
-    find "$CONFIG_DIR/rofi/launchers" -path "*/shared/fonts.rasi" -exec \
-        sed -i 's/font:.*$/font: "CaskaydiaCove Nerd Font Propo 14";/' {} \;
-    find "$CONFIG_DIR/rofi/powermenu" -path "*/shared/fonts.rasi" -exec \
-        sed -i 's/font:.*$/font: "CaskaydiaCove Nerd Font Propo 14";/' {} \;
-    
-    find "$CONFIG_DIR/rofi" -name "*.sh" -exec chmod +x {} \;
-    
-    # Configura style
-    sed -i "s/theme='style-1'/theme='style-2'/" "$CONFIG_DIR/rofi/launchers/type-2/launcher.sh"
-    sed -i "s/theme='style-1'/theme='style-2'/" "$CONFIG_DIR/rofi/powermenu/type-2/powermenu.sh"
-    
-    # Aggiorna per Hyprland
-    sed -i 's|betterlockscreen -l|hyprlock|' "$CONFIG_DIR/rofi/powermenu/type-2/powermenu.sh"
-    sed -i 's|i3lock|hyprlock|' "$CONFIG_DIR/rofi/powermenu/type-2/powermenu.sh"
-    
-    # Correggi icone
-    sed -i "s/shutdown='.*'/shutdown='󰐥'/" "$CONFIG_DIR/rofi/powermenu/type-2/powermenu.sh"
-    sed -i "s/reboot='.*'/reboot='󰜉'/" "$CONFIG_DIR/rofi/powermenu/type-2/powermenu.sh"
-    sed -i "s/lock='.*'/lock='󰌾'/" "$CONFIG_DIR/rofi/powermenu/type-2/powermenu.sh"
-    sed -i "s/suspend='.*'/suspend='󰤄'/" "$CONFIG_DIR/rofi/powermenu/type-2/powermenu.sh"
-    sed -i "s/logout='.*'/logout='󰍃'/" "$CONFIG_DIR/rofi/powermenu/type-2/powermenu.sh"
-    sed -i "s/yes='.*'/yes='󰄬'/" "$CONFIG_DIR/rofi/powermenu/type-2/powermenu.sh"
-    sed -i "s/no='.*'/no='󰜺'/" "$CONFIG_DIR/rofi/powermenu/type-2/powermenu.sh"
-    
-    rm -rf "$ROFI_REPO"
-    print_success "Rofi (adi1090x themes)"
+if [ -d "$CONFIG_DIR/rofi/launchers" ] && [ -d "$CONFIG_DIR/rofi/powermenu" ]; then
+    print_success "Rofi già configurato, skip download"
 else
-    print_warning "Impossibile scaricare temi Rofi"
+    print_info "Scaricando temi Rofi da adi1090x/rofi..."
+    ROFI_REPO="/tmp/adi1090x-rofi"
+    
+    if [ -d "$ROFI_REPO" ]; then
+        rm -rf "$ROFI_REPO"
+    fi
+    
+    git clone --depth 1 https://github.com/adi1090x/rofi.git "$ROFI_REPO" 2>/dev/null
+    
+    if [ -d "$ROFI_REPO/files" ]; then
+        mkdir -p "$CONFIG_DIR/rofi"
+        
+        cp -r "$ROFI_REPO/files/colors" "$CONFIG_DIR/rofi/"
+        cp -r "$ROFI_REPO/files/launchers" "$CONFIG_DIR/rofi/"
+        cp -r "$ROFI_REPO/files/powermenu" "$CONFIG_DIR/rofi/"
+        cp "$ROFI_REPO/files/config.rasi" "$CONFIG_DIR/rofi/"
+        
+        # Aggiorna font
+        find "$CONFIG_DIR/rofi/launchers" -path "*/shared/fonts.rasi" -exec \
+            sed -i 's/font:.*$/font: "CaskaydiaCove Nerd Font Propo 14";/' {} \;
+        find "$CONFIG_DIR/rofi/powermenu" -path "*/shared/fonts.rasi" -exec \
+            sed -i 's/font:.*$/font: "CaskaydiaCove Nerd Font Propo 14";/' {} \;
+        
+        find "$CONFIG_DIR/rofi" -name "*.sh" -exec chmod +x {} \;
+        
+        # Configura style
+        sed -i "s/theme='style-1'/theme='style-2'/" "$CONFIG_DIR/rofi/launchers/type-2/launcher.sh"
+        sed -i "s/theme='style-1'/theme='style-2'/" "$CONFIG_DIR/rofi/powermenu/type-2/powermenu.sh"
+        
+        # Aggiorna per Hyprland
+        sed -i 's|betterlockscreen -l|hyprlock|' "$CONFIG_DIR/rofi/powermenu/type-2/powermenu.sh"
+        sed -i 's|i3lock|hyprlock|' "$CONFIG_DIR/rofi/powermenu/type-2/powermenu.sh"
+        
+        # Correggi icone
+        sed -i "s/shutdown='.*'/shutdown='󰐥'/" "$CONFIG_DIR/rofi/powermenu/type-2/powermenu.sh"
+        sed -i "s/reboot='.*'/reboot='󰜉'/" "$CONFIG_DIR/rofi/powermenu/type-2/powermenu.sh"
+        sed -i "s/lock='.*'/lock='󰌾'/" "$CONFIG_DIR/rofi/powermenu/type-2/powermenu.sh"
+        sed -i "s/suspend='.*'/suspend='󰤄'/" "$CONFIG_DIR/rofi/powermenu/type-2/powermenu.sh"
+        sed -i "s/logout='.*'/logout='󰍃'/" "$CONFIG_DIR/rofi/powermenu/type-2/powermenu.sh"
+        sed -i "s/yes='.*'/yes='󰄬'/" "$CONFIG_DIR/rofi/powermenu/type-2/powermenu.sh"
+        sed -i "s/no='.*'/no='󰜺'/" "$CONFIG_DIR/rofi/powermenu/type-2/powermenu.sh"
+        
+        rm -rf "$ROFI_REPO"
+        print_success "Rofi (adi1090x themes)"
+    else
+        print_warning "Impossibile scaricare temi Rofi"
+    fi
 fi
 
 # Kitty
@@ -586,7 +675,17 @@ print_success "SwayNC"
 copy_config "$SCRIPT_DIR/fastfetch" "$CONFIG_DIR/fastfetch"
 print_success "Fastfetch"
 
-# Zsh
+# Zsh - con backup centralizzato
+if [ -f "$HOME/.zshrc" ]; then
+    mkdir -p "$BACKUP_DIR"
+    print_warning "Backup: $HOME/.zshrc -> $BACKUP_DIR/.zshrc"
+    mv "$HOME/.zshrc" "$BACKUP_DIR/.zshrc"
+fi
+if [ -f "$HOME/.p10k.zsh" ]; then
+    mkdir -p "$BACKUP_DIR"
+    print_warning "Backup: $HOME/.p10k.zsh -> $BACKUP_DIR/.p10k.zsh"
+    mv "$HOME/.p10k.zsh" "$BACKUP_DIR/.p10k.zsh"
+fi
 cp "$SCRIPT_DIR/zsh/.zshrc" "$HOME/.zshrc"
 cp "$SCRIPT_DIR/zsh/.p10k.zsh" "$HOME/.p10k.zsh"
 print_success "Zsh"
@@ -603,27 +702,34 @@ print_success "Cartelle create"
 # └──────────────────────────────────────────────────────────────────────────────┘
 print_header "Download wallpaper One Dark"
 
-WALLPAPER_REPO="/tmp/onedark-wallpapers"
+# Verifica se ci sono già wallpaper
+WALLPAPER_COUNT=$(find "$HOME/Pictures/Wallpapers" -type f \( -name "*.png" -o -name "*.jpg" -o -name "*.jpeg" -o -name "*.webp" \) 2>/dev/null | wc -l)
 
-if [ -d "$WALLPAPER_REPO" ]; then
-    rm -rf "$WALLPAPER_REPO"
-fi
-
-print_info "Clonando repository wallpaper..."
-git clone --depth 1 https://github.com/Narmis-E/onedark-wallpapers.git "$WALLPAPER_REPO" 2>/dev/null
-
-if [ -d "$WALLPAPER_REPO" ]; then
-    for folder in minimal misc os; do
-        if [ -d "$WALLPAPER_REPO/$folder" ]; then
-            cp "$WALLPAPER_REPO/$folder"/*.{png,jpg,jpeg,webp} "$HOME/Pictures/Wallpapers/" 2>/dev/null || true
-            print_info "Copiati wallpaper da: $folder"
-        fi
-    done
-    
-    rm -rf "$WALLPAPER_REPO"
-    print_success "Wallpaper One Dark installati"
+if [ "$WALLPAPER_COUNT" -gt 5 ]; then
+    print_success "Wallpaper già presenti ($WALLPAPER_COUNT trovati), skip download"
 else
-    print_warning "Impossibile scaricare wallpaper"
+    WALLPAPER_REPO="/tmp/onedark-wallpapers"
+    
+    if [ -d "$WALLPAPER_REPO" ]; then
+        rm -rf "$WALLPAPER_REPO"
+    fi
+    
+    print_info "Clonando repository wallpaper..."
+    git clone --depth 1 https://github.com/Narmis-E/onedark-wallpapers.git "$WALLPAPER_REPO" 2>/dev/null
+    
+    if [ -d "$WALLPAPER_REPO" ]; then
+        for folder in minimal misc os; do
+            if [ -d "$WALLPAPER_REPO/$folder" ]; then
+                cp "$WALLPAPER_REPO/$folder"/*.{png,jpg,jpeg,webp} "$HOME/Pictures/Wallpapers/" 2>/dev/null || true
+                print_info "Copiati wallpaper da: $folder"
+            fi
+        done
+        
+        rm -rf "$WALLPAPER_REPO"
+        print_success "Wallpaper One Dark installati"
+    else
+        print_warning "Impossibile scaricare wallpaper"
+    fi
 fi
 
 # ┌──────────────────────────────────────────────────────────────────────────────┐
@@ -631,7 +737,7 @@ fi
 # └──────────────────────────────────────────────────────────────────────────────┘
 print_header "Configurazione tema GTK e Cursore"
 
-mkdir -p "$HOME/.config/gtk-3.0" "$HOME/.config/gtk-4.0"
+safe_mkdir "$HOME/.config/gtk-3.0" "$HOME/.config/gtk-4.0"
 
 cat > "$HOME/.config/gtk-3.0/settings.ini" << 'EOF'
 [Settings]
@@ -719,4 +825,12 @@ echo -e "${RED}⚠️  RIAVVIA IL SISTEMA per applicare tutte le modifiche!${NC}
 echo ""
 echo -e "${CYAN}Al login, seleziona 'Hyprland' come sessione${NC}"
 echo ""
+
+# Mostra info backup se esistono
+if [ -d "$BACKUP_DIR" ] && [ "$(ls -A "$BACKUP_DIR" 2>/dev/null)" ]; then
+    echo -e "${BLUE}📦 Backup delle vecchie configurazioni:${NC}"
+    echo -e "   ${BACKUP_DIR}"
+    echo ""
+fi
+
 print_warning "Logout/login per applicare la nuova shell (zsh)"

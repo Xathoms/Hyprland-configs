@@ -73,6 +73,7 @@ hyprland-config/
 | `SUPER + T` | Toggle floating |
 | `SUPER + P` | Pseudo-tile |
 | `SUPER + J` | Toggle split |
+| `SUPER + K` | Scambia finestra con l'ultima |
 | `SUPER + G` | Toggle gruppo |
 | `SUPER + Tab` | Cambia finestra nel gruppo |
 
@@ -107,6 +108,13 @@ hyprland-config/
 | `SUPER + SHIFT + Q` | Esci da Hyprland |
 
 ## 🚀 Installazione
+
+### Ultime modifiche (v1.2.0)
+- 🔧 **Fix CMake Ubuntu**: Installazione automatica di CMake 3.30+ per Ubuntu 24.04 (risolve errore compilazione Hyprland)
+- 📁 **Backup centralizzato**: Tutti i backup salvati in `~/backup-old-dotfiles/` con timestamp e struttura organizzata
+- 🎵 **Media player compatto**: SwayNC con dimensioni ridotte per media player e pulsanti di controllo
+- ⌨️ **Nuovo keybinding**: `SUPER + K` per scambiare la finestra corrente con l'ultima
+- 🖥️ **Auto-rilevazione monitor**: La risoluzione del display viene rilevata automaticamente durante l'installazione
 
 ```bash
 # Estrai l'archivio
@@ -145,7 +153,18 @@ Dimensioni consigliate: 550x80px
 
 ## 🔧 Personalizzazione
 
-### Aggiungere monitor
+### Riconfigurare i monitor
+Se vuoi modificare la configurazione dei monitor dopo l'installazione:
+```bash
+~/.config/hypr/scripts/monitor-setup.sh
+```
+Questo script permette di:
+- Auto-configurare il monitor principale
+- Configurare manualmente tutti i monitor
+- Ripristinare la configurazione automatica
+- Visualizzare la configurazione attuale
+
+### Aggiungere monitor manualmente
 In `hypr/hyprland.conf`:
 ```conf
 monitor=DP-1,2560x1440@144,0x0,1

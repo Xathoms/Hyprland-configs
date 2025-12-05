@@ -25,6 +25,7 @@ Super + Shift + F       Fake Fullscreen
 Super + T               Toggle Float
 Super + P               Pseudo tiling
 Super + J               Toggle Split
+Super + K               Scambia finestra con l'ultima
 Super + G               Toggle Group
 Super + Tab             Cambia finestra nel gruppo
 
